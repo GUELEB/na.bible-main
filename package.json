@@ -1,0 +1,19 @@
+{
+  "name": "na-bible-app",
+  "version": "1.0.0",
+  "description": "Una aplicación web progresiva para la Biblia y himnos",
+  "main": "app.js",
+  "scripts": {
+    "start": "node generate-bible.js && node generate-hymnals.js",
+    "dev": "live-server",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "bible",
+    "hymns",
+    "pwa",
+    "javascript"
+  ],
+  "author": "Tu Nombre o el autor original",
+  "license": "MIT"
+}

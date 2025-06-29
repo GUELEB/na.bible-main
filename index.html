@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NA.BIBLE - Versión Reina Valera 1960</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <!-- Rutas relativas para los íconos -->
+    <link rel="apple-touch-icon" href="public/icon-512.png">
+    <meta name="theme-color" content="#007bff">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="title-container">
+                <h1>NA.BIBLE</h1>
+                <p class="version-text">Versión Reina Valera 1960</p>
+            </div>
+            <button id="theme-toggle" class="theme-toggle" aria-label="Cambiar tema">
+                <span id="theme-icon">🌙</span>
+            </button>
+        </header>
+
+        <main>
+            <!-- BÚSQUEDA Y NAVEGACIÓN (SIEMPRE VISIBLE) -->
+            <div id="navigation-area" class="section card">
+                <h2>Buscar o Navegar</h2>
+                <div class="search-controls">
+                    <input type="text" id="search-input" placeholder="Ej: Juan 3:16, 'el amor de Dios', Salmo 23..." aria-label="Introduce tu búsqueda o referencia bíblica">
+                    <button id="search-button">Buscar</button>
+                </div>
+
+                <div class="reference-controls">
+                    <select id="book-select" aria-label="Seleccionar libro" disabled>
+                        <option value="">Selecciona un libro</option>
+                    </select>
+                    <select id="chapter-select" aria-label="Seleccionar capítulo" disabled>
+                        <option value="">Selecciona un capítulo</option>
+                    </select>
+                    <select id="verse-select" aria-label="Seleccionar versículo" disabled>
+                        <option value="">(Opcional) Versículo</option>
+                    </select>
+                    <button id="go-to-reference-btn" disabled>Ir</button>
+                </div>
+            </div>
+
+            <!-- ÁREA DE CONTENIDO DINÁMICO -->
+            <div id="content-area" class="section card">
+                <!-- CONTENIDO INICIAL / VERSÍCULO DEL DÍA -->
+                <div id="home-view">
+                    <h2>Bienvenido</h2>
+                    <p>Usa la barra de búsqueda para encontrar un pasaje, palabra o himno.</p>
+                    <div id="votd-container">
+                        <h3>Versículo del Día</h3>
+                        <div id="votd-content">Cargando...</div>
+                        <div id="votd-reference"></div>
+                    </div>
+                </div>
+
+                <!-- LISTA DE RESULTADOS -->
+                <div id="result-list-view" class="hidden">
+                    <div class="view-header">
+                        <button id="back-to-home-btn-list" class="back-button">← Volver</button>
+                        <h2 id="result-list-title">Resultados de Búsqueda</h2>
+                    </div>
+                    <div id="result-list-content"></div>
+                </div>
+
+                <!-- VISTA DE LECTURA DE CAPÍTULO/VERSÍCULO --->
+                <div id="read-view" class="hidden">
+                    <div class="view-header">
+                        <button id="back-to-home-btn-read" class="back-button">← Volver</button>
+                         <h2 id="read-view-title">Lectura</h2>
+                        <div class="action-buttons">
+                           <button id="copy-chapter-btn" class="action-btn" aria-label="Copiar Capítulo">Copiar</button>
+                           <button id="share-chapter-btn" class="action-btn" aria-label="Compartir Capítulo">Compartir</button>
+                        </div>
+                    </div>
+                    <div id="chapter-content"></div>
+                    <div class="navigation-buttons">
+                        <button id="prev-chapter-btn">Cap. Ant.</button>
+                        <button id="prev-verse-btn">Ver. Ant.</button>
+                        <button id="next-verse-btn">Ver. Sig.</button>
+                        <button id="next-chapter-btn">Cap. Sig.</button>
+                    </div>
+                </div>
+                
+                <!-- VISTA DE RESULTADO ÚNICO -->
+                <div id="single-result-view" class="hidden">
+                    <div class="view-header">
+                         <button id="back-to-results-btn" class="back-button">← Volver a Resultados</button>
+                         <h2 id="single-view-title">Resultado</h2>
+                         <div class="action-buttons">
+                            <button id="copy-single-btn" class="action-btn" aria-label="Copiar Resultado">Copiar</button>
+                            <button id="share-single-btn" class="action-btn" aria-label="Compartir Resultado">Compartir</button>
+                         </div>
+                    </div>
+                    <div id="single-result-content"></div>
+                     <div class="navigation-buttons">
+                        <button id="prev-search-result-btn">Ant. Resultado</button>
+                        <button id="next-search-result-btn">Sig. Resultado</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <!-- Ruta relativa para el script -->
+    <script src="app.js"></script>
+</body>
+</html>
