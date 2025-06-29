@@ -1,5 +1,5 @@
 // Se ha cambiado la versión del caché para forzar la actualización en los dispositivos de los usuarios
-const CACHE_NAME = 'na-bible-cache-v3';
+const CACHE_NAME = 'na-bible-cache-v5';
 // Rutas relativas para que funcione en cualquier servidor o subdirectorio
 const urlsToCache = [
     './',
@@ -9,7 +9,8 @@ const urlsToCache = [
     'manifest.json',
     'public/icon-192.png',
     'public/icon-512.png',
-    'data/biblia/_index.json',
+    // CORRECCIÓN: Se cambió de _index.json a index.json
+    'data/biblia/index.json', 
     'data/himnario/index.json'
     // Los libros individuales se cachearán dinámicamente al ser solicitados
 ];

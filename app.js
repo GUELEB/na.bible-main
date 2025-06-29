@@ -67,13 +67,12 @@ document.addEventListener('DOMContentLoaded', () => {
         setupTheme();
         await loadBibleIndex();
         await loadHymnsIndex();
-        parseHymnsData(); // <<--- NUEVA FUNCIÓN PARA PROCESAR HIMNOS
+        parseHymnsData(); // Procesa los himnos
         await setupReferenceNavigation();
         displayVerseOfTheDay();
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                // Ruta relativa para el service worker
                 navigator.serviceWorker.register('service-worker.js')
                     .then(reg => console.log('Service Worker registrado:', reg.scope))
                     .catch(err => console.error('Error al registrar Service Worker:', err));
@@ -145,8 +144,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- CARGA Y PROCESAMIENTO DE DATOS ---
     async function loadBibleIndex() {
         try {
-            // Ruta relativa
-            const response = await fetch('data/biblia/_index.json');
+            // CORRECCIÓN: Se cambió de _index.json a index.json
+            const response = await fetch('data/biblia/index.json');
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             bibleIndex = await response.json();
             bibleIndex.forEach((book, index) => book.id = index + 1);
@@ -160,7 +159,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadHymnsIndex() {
         try {
-            // Ruta relativa
             const response = await fetch('data/himnario/index.json');
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             hymnsIndex = await response.json();
@@ -170,14 +168,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ¡NUEVA FUNCIÓN! Procesa el texto de los himnos para separar título, estrofas y coro
     function parseHymnsData() {
         if (!hymnsIndex || hymnsIndex.length === 0) return;
 
         const CORO_MARKER = '@CORO';
         hymnsIndex = hymnsIndex.map(hymn => {
-            const fullText = hymn.title || ''; // Usar 'title' como el texto completo
-            const parts = fullText.split(/\n\s*\*{3}\s*\n/); // Separar por ***
+            const fullText = hymn.title || '';
+            const parts = fullText.split(/\n\s*\*{3}\s*\n/); 
 
             const newHymn = {
                 number: hymn.number,
@@ -186,32 +183,54 @@ document.addEventListener('DOMContentLoaded', () => {
                 chorus: null,
                 stanzas: [],
                 startsWithChorus: false,
-                tags: hymn.tags // Conservar las etiquetas si existen
+                tags: hymn.tags
             };
-
-            // La primera parte contiene el título del himno
+            
             const titleBlock = parts.shift().trim();
             const titleLines = titleBlock.split('\n');
-            newHymn.title = titleLines[0].replace(/^\d+\s*/, '').trim();
+            newHymn.title = titleLines.length > 0 ? titleLines[0].replace(/^\d+\s*/, '').trim() : "Sin Título";
 
-            // Procesar el resto de las partes como estrofas o coro
             for (const part of parts) {
                 let currentPart = part.trim();
                 if (currentPart.startsWith(CORO_MARKER)) {
-                    // Es un coro
                     newHymn.chorus = currentPart.replace(CORO_MARKER, '').trim();
                     if (newHymn.stanzas.length === 0) {
                         newHymn.startsWithChorus = true;
                     }
+                } else if (currentPart.startsWith('@TAGS')) {
+                    // Ignorar la línea de etiquetas para no mostrarla como estrofa
                 } else if (currentPart) {
-                    // Es una estrofa
-                    newHymn.stanzas.push(currentPart);
+                    newHymn.stanzas.push(currentPart.replace(/^\d+\)\s*/, '')); // Quitar "1)" etc.
                 }
             }
-            
-            // Si después de procesar, no hay estrofas pero sí hay líneas de título, usarlas como estrofas
+
             if (newHymn.stanzas.length === 0 && titleLines.length > 1) {
-                 newHymn.stanzas = titleLines.slice(1).map(line => line.trim()).filter(line => line);
+                 newHymn.stanzas = titleLines.slice(1).map(line => line.trim().replace(/^\d+\)\s*/, '')).filter(line => line && !line.startsWith('@'));
+            }
+            
+            // Caso especial para himnos que no usan *** (como los de "Corario Bautista")
+            if (parts.length === 0 && titleLines.length > 1) {
+                 const contentLines = titleLines.slice(1);
+                 let isChorus = false;
+                 for(const line of contentLines) {
+                     if (line.trim().startsWith(CORO_MARKER)) {
+                         newHymn.chorus = (newHymn.chorus || '') + line.replace(CORO_MARKER, '').trim() + '\n';
+                         isChorus = true;
+                         if (newHymn.stanzas.length === 0) newHymn.startsWithChorus = true;
+                     } else if (line.trim().match(/^\d+\)/)) {
+                         isChorus = false;
+                         newHymn.stanzas.push(line.replace(/^\d+\)\s*/, '').trim());
+                     } else if (isChorus) {
+                          newHymn.chorus += line.trim() + '\n';
+                     } else if (line.trim() && !line.startsWith('@TAGS')) {
+                         if (newHymn.stanzas.length > 0) {
+                             newHymn.stanzas[newHymn.stanzas.length - 1] += '\n' + line.trim();
+                         } else {
+                             newHymn.stanzas.push(line.trim());
+                         }
+                     }
+                 }
+                 if(newHymn.chorus) newHymn.chorus = newHymn.chorus.trim();
             }
 
             return newHymn;
@@ -222,7 +241,6 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadBibleBookData(bookKey) {
         if (bibleBooksData[bookKey]) return bibleBooksData[bookKey];
         try {
-            // Ruta relativa
             const response = await fetch(`data/biblia/${bookKey}.json`);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const data = await response.json();
@@ -294,7 +312,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return { bookKey: foundBook.key, chapter: chapterNum, startVerse, endVerse };
         }
     
-        // Alias manual para 'Cantar de los Cantares'
         if (normalizedBookName === "cantares" || normalizedBookName === "cantar") {
             const cantarBook = bibleIndex.find(b => b.key === 'cantares');
             if (cantarBook) return { bookKey: cantarBook.key, chapter: chapterNum, startVerse, endVerse };
@@ -462,11 +479,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.stanzas) {
                 result.stanzas.forEach((stanza, i) => {
                     content += `<p><strong>${i + 1}.</strong> ${highlightText(stanza.replace(/\n/g, '<br>'), currentState.lastQuery)}</p>`;
+                    // Si el coro no es al principio, se repite después de cada estrofa
                     if (!result.startsWithChorus && result.chorus) {
-                        content += `<p class="chorus"><strong>CORO:</strong><br>${highlightText(result.chorus.replace(/\n/g, '<br>'), currentState.lastQuery)}</p>`;
+                         content += `<p class="chorus"><strong>CORO:</strong><br>${highlightText(result.chorus.replace(/\n/g, '<br>'), currentState.lastQuery)}</p>`;
                     }
                 });
             }
+            // Si solo hay coro y no estrofas (y no empieza con coro), mostrarlo al final.
+            if ((!result.stanzas || result.stanzas.length === 0) && !result.startsWithChorus && result.chorus) {
+                 content += `<p class="chorus"><strong>CORO:</strong><br>${highlightText(result.chorus.replace(/\n/g, '<br>'), currentState.lastQuery)}</p>`;
+            }
+
             html = content;
         }
         
@@ -519,12 +542,14 @@ document.addEventListener('DOMContentLoaded', () => {
         currentState.verseCount = bookData[chapterNum - 1].length;
     
         let html = '';
-        for (let i = startVerse - 1; i < endVerse; i++) {
-            html += `<p><strong>${i + 1}</strong> ${bookData[chapterNum - 1][i]}</p>`;
+        for (let i = startVerse - 1; i < (endVerse || startVerse); i++) {
+             if(bookData[chapterNum - 1][i]){
+                html += `<p><strong>${i + 1}</strong> ${bookData[chapterNum - 1][i]}</p>`;
+             }
         }
         
         chapterContent.innerHTML = html;
-        readViewTitle.textContent = `${bookInfo.title} ${chapterNum}:${startVerse}${startVerse !== endVerse ? '-' + endVerse : ''}`;
+        readViewTitle.textContent = `${bookInfo.title} ${chapterNum}:${startVerse}${endVerse && startVerse !== endVerse ? '-' + endVerse : ''}`;
         updateNavigationButtons();
         updateView('read');
         updateReferenceSelectors(bookKey, chapterNum, startVerse);
@@ -533,11 +558,31 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- LÓGICA DE NAVEGACIÓN ---
     async function navigateChapter(direction) {
         if (!currentState.bookKey) return;
-        const bookInfo = bibleIndex.find(b => b.key === currentState.bookKey);
-        const newChapter = currentState.chapter + direction;
-        if (newChapter >= 1 && newChapter <= bookInfo.chapters) {
-            await displayBibleChapter(currentState.bookKey, newChapter);
+        const currentBookIndex = bibleIndex.findIndex(b => b.key === currentState.bookKey);
+        const bookInfo = bibleIndex[currentBookIndex];
+
+        let newChapter = currentState.chapter + direction;
+        let newBookKey = currentState.bookKey;
+
+        if (newChapter < 1) {
+            if (currentBookIndex > 0) {
+                const prevBookInfo = bibleIndex[currentBookIndex - 1];
+                newBookKey = prevBookInfo.key;
+                newChapter = prevBookInfo.chapters;
+            } else {
+                return; // No hay libro anterior
+            }
+        } else if (newChapter > bookInfo.chapters) {
+            if (currentBookIndex < bibleIndex.length - 1) {
+                const nextBookInfo = bibleIndex[currentBookIndex + 1];
+                newBookKey = nextBookInfo.key;
+                newChapter = 1;
+            } else {
+                return; // No hay libro siguiente
+            }
         }
+        
+        await displayBibleChapter(newBookKey, newChapter);
     }
 
     async function navigateVerse(direction) {
@@ -545,28 +590,40 @@ document.addEventListener('DOMContentLoaded', () => {
         
         let { bookKey, chapter, verse, verseCount } = currentState;
         let newVerse = (verse || (direction > 0 ? 0 : verseCount + 1)) + direction;
-        let bookInfo = bibleIndex.find(b => b.key === bookKey);
     
         if (newVerse >= 1 && newVerse <= verseCount) {
             await displayBibleVerses(bookKey, chapter, newVerse);
-        } else if (newVerse < 1) { // Ir al capítulo anterior
-            if (chapter > 1) {
-                const prevChapterNum = chapter - 1;
+        } else if (newVerse < 1) {
+            const currentBookIndex = bibleIndex.findIndex(b => b.key === bookKey);
+            let prevChapterNum = chapter - 1;
+             if (prevChapterNum >= 1) {
                 const prevBookData = await loadBibleBookData(bookKey);
                 const lastVersePrevChapter = prevBookData[prevChapterNum - 1].length;
-                await displayBibleChapter(bookKey, prevChapterNum);
-                // Opcional: ir al último versículo del capítulo anterior
-                // await displayBibleVerses(bookKey, prevChapterNum, lastVersePrevChapter);
-            }
-        } else if (newVerse > verseCount) { // Ir al capítulo siguiente
-            if (chapter < bookInfo.chapters) {
-                await displayBibleChapter(bookKey, chapter + 1);
-                 // Opcional: ir al primer versículo del capítulo siguiente
-                // await displayBibleVerses(bookKey, chapter + 1, 1);
+                await displayBibleVerses(bookKey, prevChapterNum, lastVersePrevChapter);
+             } else {
+                if (currentBookIndex > 0) {
+                    const prevBookInfo = bibleIndex[currentBookIndex - 1];
+                    const prevBookData = await loadBibleBookData(prevBookInfo.key);
+                    const lastChapter = prevBookInfo.chapters;
+                    const lastVerse = prevBookData[lastChapter - 1].length;
+                    await displayBibleVerses(prevBookInfo.key, lastChapter, lastVerse);
+                }
+             }
+        } else if (newVerse > verseCount) {
+            const currentBookIndex = bibleIndex.findIndex(b => b.key === bookKey);
+            const bookInfo = bibleIndex[currentBookIndex];
+            let nextChapterNum = chapter + 1;
+            if (nextChapterNum <= bookInfo.chapters) {
+                await displayBibleVerses(bookKey, nextChapterNum, 1);
+            } else {
+                if (currentBookIndex < bibleIndex.length - 1) {
+                    const nextBookInfo = bibleIndex[currentBookIndex + 1];
+                    await displayBibleVerses(nextBookInfo.key, 1, 1);
+                }
             }
         }
     }
-
+    
     function navigateSearchResult(direction) {
         const newIndex = currentState.searchResultIndex + direction;
         if (newIndex >= 0 && newIndex < currentState.searchResults.length) {
@@ -576,26 +633,31 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function updateNavigationButtons() {
         const { bookKey, chapter, verse, searchResultIndex, searchResults, view } = currentState;
-        const bookInfo = bookKey ? bibleIndex.find(b => b.key === bookKey) : null;
         
-        // Ocultar/mostrar botones según la vista
         readView.querySelector('.navigation-buttons').style.display = view === 'read' ? 'flex' : 'none';
         singleResultView.querySelector('.navigation-buttons').style.display = view === 'single' ? 'flex' : 'none';
 
-        if (view === 'read' && bookInfo) {
-            prevChapterBtn.disabled = chapter <= 1 && bookInfo.id === 1;
-            nextChapterBtn.disabled = chapter >= bookInfo.chapters && bookInfo.id === bibleIndex.length;
+        if (view === 'read') {
+            const bookInfo = bookKey ? bibleIndex.find(b => b.key === bookKey) : null;
+            if (bookInfo) {
+                const currentBookIndex = bibleIndex.findIndex(b => b.key === bookKey);
 
-            const isShowingChapter = verse === null;
-            prevVerseBtn.style.display = isShowingChapter ? 'none' : 'inline-block';
-            nextVerseBtn.style.display = isShowingChapter ? 'none' : 'inline-block';
-            
-            const firstVerseInBook = chapter === 1 && verse === 1;
-            const lastVerseInBook = chapter === bookInfo.chapters && verse === currentState.verseCount;
+                prevChapterBtn.disabled = chapter <= 1 && currentBookIndex === 0;
+                nextChapterBtn.disabled = chapter >= bookInfo.chapters && currentBookIndex === bibleIndex.length - 1;
+                
+                const isShowingChapter = verse === null;
+                prevVerseBtn.style.display = isShowingChapter ? 'none' : 'inline-block';
+                nextVerseBtn.style.display = isShowingChapter ? 'none' : 'inline-block';
+                
+                if (!isShowingChapter) {
+                    const firstVerseInBook = chapter === 1 && verse === 1 && currentBookIndex === 0;
+                    const lastBookInfo = bibleIndex[bibleIndex.length - 1];
+                    const lastVerseInBook = bookKey === lastBookInfo.key && chapter === lastBookInfo.chapters && verse === currentState.verseCount;
 
-            prevVerseBtn.disabled = firstVerseInBook;
-            nextVerseBtn.disabled = lastVerseInBook;
-
+                    prevVerseBtn.disabled = firstVerseInBook;
+                    nextVerseBtn.disabled = lastVerseInBook;
+                }
+            }
         } else if (view === 'single') {
             prevSearchResultBtn.disabled = searchResultIndex <= 0;
             nextSearchResultBtn.disabled = searchResultIndex >= searchResults.length - 1;
@@ -605,6 +667,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- CONTROLES DE REFERENCIA (SELECTS) ---
     async function setupReferenceNavigation() {
         if (bibleIndex.length > 0) {
+            bookSelect.innerHTML = '<option value="">Selecciona un libro</option>';
             bibleIndex.forEach(book => {
                 const option = document.createElement('option');
                 option.value = book.key;
@@ -695,7 +758,7 @@ document.addEventListener('DOMContentLoaded', () => {
             bookSelect.value = bookKey;
             await fillChapterSelect(bookKey, chapter);
             await fillVerseSelect(bookKey, chapter, verse);
-        } else if (chapterSelect.value !== chapter.toString()) {
+        } else if (chapterSelect.value !== String(chapter)) {
             chapterSelect.value = chapter;
             await fillVerseSelect(bookKey, chapter, verse);
         }
@@ -728,7 +791,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // MEJORADO: Usa innerText para una copia más limpia y fiel al formato visual.
     function getTextFromHtml(element) {
         return element.innerText;
     }
@@ -753,7 +815,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     text: `${title}\n\n${text}\n\n- Compartido desde NA.BIBLE`,
                 });
             } catch (err) {
-                // No mostrar error si el usuario cancela el diálogo de compartir
                 if (err.name !== 'AbortError') {
                     console.error('Error al compartir:', err);
                 }
